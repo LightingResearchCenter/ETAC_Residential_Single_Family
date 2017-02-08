@@ -1,10 +1,10 @@
-function LampStateReport(reportPath,data)
+function LampStateReport(reportPath,data,reportTitle)
 %LAMPSTATEREPORT Summary of this function goes here
 %   Detailed explanation goes here
 
 r = d12pack.report;
 r.Orientation = 'landscape';
-r.Title = 'Sample Hobo Data';
+r.Title = reportTitle;
 r.Type = 'Lamp State Report';
 
 ax = axes(r.Body);
