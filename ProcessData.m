@@ -9,37 +9,72 @@ clc
 d12packDir = fullfile(githubDir,'d12pack');
 addpath(d12packDir);
 
-% File handling
-parentDir = '\\root\projects\ETAC-SingleFamilyResidential\sites\consolidated data';
-[filePaths,fileMetaData] = FindData(parentDir);
+projectDir = '\\root\projects\ETAC-SingleFamilyResidential\sites\consolidated data';
 
-nFiles = numel(filePaths);
-h = waitbar(0,'Please wait...');
-for iFile = nFiles:-1:1
-    [data,SN] = ReadHobo(filePaths{iFile});
+% Load data
+[Data,metaData] = LoadData;
+
+% Find unique sites and seasons
+unqSites   = unique(metaData.site);
+unqSeasons = unique(metaData.season);
+
+% Edit away state based on entire location during that season
+for iSite = 1:numel(unqSites)
+    thisSite    = unqSites{iSite};
+    thisSiteIdx = ismember(metaData.site,thisSite);
+    
+    for iSeason = 1:numel(unqSeasons)
+        thisSeason    = unqSeasons{iSeason};
+        thisSeasonIdx = ismember(metaData.season,thisSeason);
+        
+        theseIdx  = thisSiteIdx & thisSeasonIdx;
+        theseData = Data(theseIdx);
+        theseMeta = metaData(theseIdx,:);
+        
+        if ~isempty(theseData)
+            theseDataAdj = GroupAwayState(theseData);
+            Data(theseIdx) = theseDataAdj;
+        end
+    end
+end
+
+nFiles = numel(Data);
+message = sprintf('Please wait.File %d of %d completed.',0,nFiles);
+h = waitbar(0,message);
+
+stats = table;
+stats.monitoringStart         = NaT(nFiles,1,'TimeZone','local');
+stats.monitoringEnd           = NaT(nFiles,1,'TimeZone','local');
+stats.monitoringDuration_days = NaN(nFiles,1);
+stats.occupiedDuration_days	  = NaN(nFiles,1);
+stats.occupiedDuration_hours  = NaN(nFiles,1);
+stats.occupiedOn_hours	      = NaN(nFiles,1);
+stats.occupiedOff_hours	      = NaN(nFiles,1);
+stats.hoursOnPerDay           = NaN(nFiles,1);
+
+for iFile = 1:nFiles
+    data = Data{iFile};
     
     if ~isempty(data)
         if height(data) > 1
         % Analysis
-        data.LampState = DetermineState(data.MaxIntensity);
-        data.AwayState = DetermineAway(data);
-        
         stats(iFile,:) = ComputeStats(data);
         
         % Plotting
-        reportPath = fullfile(parentDir,'plots',[fileMetaData.fileName{iFile},'.pdf']);
-        LampStateReport(reportPath,data,fileMetaData.fileName{iFile})
+        reportPath = fullfile(projectDir,'plots',[metaData.fileName{iFile},'.pdf']);
+        LampStateReport(reportPath,data,metaData.cutoff_percent(iFile),metaData.fileName{iFile})
         close(gcf)
         end
     end
-    
-    waitbar((nFiles-(iFile-1))/nFiles,h)
+    message = sprintf('Please wait. File %d of %d completed.',iFile,nFiles);
+    waitbar(iFile/(nFiles+1),h,message)
 end
+message = sprintf('Please wait. Saving stats to Excel...');
+waitbar(1,h,message)
 
-delete(h)
+tableOut = horzcat(metaData,stats);
 
-tableOut = horzcat(fileMetaData(:,1:5),stats);
-
-xlsPath = fullfile(parentDir,'stats.xlsx');
+xlsPath = fullfile(projectDir,['stats_',datestr(now,'yyyy-mm-dd_HHMM'),'.xlsx']);
 writetable(tableOut,xlsPath)
 
+delete(h)

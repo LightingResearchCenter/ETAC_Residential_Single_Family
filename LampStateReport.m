@@ -1,4 +1,4 @@
-function LampStateReport(reportPath,data,reportTitle)
+function LampStateReport(reportPath,data,cutoff,reportTitle)
 %LAMPSTATEREPORT Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -18,18 +18,20 @@ a.EdgeColor = 'none';
 b = area(data.DateTime,data.AwayState);
 b.FaceColor = [0.4 0.4 0.4];
 b.EdgeColor = 'none';
+axis tight
+ax.YLim = [0,1];
 ax.YTick = [0,1];
 ax.YTickLabel = {'OFF','ON'};
-axis tight
 ax.YLabel.String = 'Lamp State';
 
 yyaxis right
 c = plot(data.DateTime,data.MaxIntensity);
 hold on
-cutoff = 0.1*max(data.MaxIntensity);
+cutoff = cutoff*max(data.MaxIntensity);
 d = plot([data.DateTime(1),data.DateTime(end)],[cutoff,cutoff]);
 d.Color = 'black';
 hold off
+ax.YLim = [0,1.1*max(data.MaxIntensity)];
 ax.YLabel.String = 'lum/ft^{2}';
 ax.XLabel.String = 'Date Time';
 
@@ -41,7 +43,7 @@ l = legend('Lamp State','Away','Max Light Intensity','State Cutoff');
 l.Orientation = 'horizontal';
 l.Location = 'southoutside';
 
-ax.Position = [0.1125,0.18,0.775,0.82];
+ax.Position = [0.1125,0.18,0.77,0.81];
 
 % Save plot
 saveas(r.Figure,reportPath)

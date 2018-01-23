@@ -1,31 +1,36 @@
-function state = DetermineState(x,varargin)
+function [state,cutoff_percent,cutoff_lumPerSqFt] = DetermineState(x,varargin)
 %DETERMINESTATE Determine if state of lights are on or off
 %   Input 'x' is light reading signal
 %   Output state is true/false, true = light is on, false = light is off
 %   Optional argument in is cutoff as percentage of maximum light
-%       (0 > cutoff < 1), default cutoff is 10% (0.1)
+%       (0 > cutoff < 1), default cutoff is 30% (0.3)
 
+% Determine cutoff value
+max_X = max(x);
 if nargin == 2
-    cutoff = varargin{1};
+    cutoff_percent = varargin{1};
 else
-    cutoff = 0.1;
+    if max_X < 30
+        cutoff_percent = 1.1;
+    else
+        cutoff_percent = 0.3;
+    end
 end
+cutoff_lumPerSqFt = cutoff_percent*max_X;
 
-norm = x/max(x);
+% Design filter
+windowSize = 10;
+b = (1/windowSize)*ones(1,windowSize);
+a = 1;
 
-state0 = norm > cutoff;
-state = state0;
+% Apply filter to data
+y = filter(b,a,x);
 
-% state1 = circshift(state0,-1);
-% state1(end) = true;
-% state2 = circshift(state0,-2);
-% state2(end-1:end) = true;
-% state3 = circshift(state0,-3);
-% state3(end-2:end) = true;
-% 
-% stateSum = state0 + state1;% + state2;% + state3;
-% 
-% state = stateSum >= 2;
+% Find values above cutoff
+state0 = x > cutoff_lumPerSqFt;
+state1 = y > cutoff_lumPerSqFt;
+state = state0 | state1;
+
 
 end
 

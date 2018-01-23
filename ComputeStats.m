@@ -17,7 +17,7 @@ stats.occupiedDuration_hours = hours(occupiedDuration);
 
 stats.occupiedOn_hours	= hours(epoch*sum(occupiedOn));
 stats.occupiedOff_hours	= hours(epoch*sum(occupiedOff));
-stats.hoursOnPerDay     = stats.occupiedOn_hours*24/hours(occupiedDuration);
+stats.hoursOnPerDay     = stats.occupiedOn_hours/numel(unique(dateshift(data.DateTime(~data.AwayState),'start','day')));
 
 end
 
